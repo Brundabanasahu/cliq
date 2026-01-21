@@ -5,11 +5,17 @@ import { authClient } from "@/lib/auth-client";
 import { router } from "better-auth/api";
 import Image from "next/image";
 import { useRouter } from "next/navigation";
-import { use } from "react";
+import { use, useEffect } from "react";
 
 export default function Home() {
   const {data,isPending}=authClient.useSession();
-  const router=useRouter
+  const router=useRouter();
+
+  useEffect(() => {
+    if(!isPending && (data?.session || data?.user)) {
+      router.push("/");
+    }
+  })
   
   if(isPending){
     return(
@@ -19,9 +25,6 @@ export default function Home() {
     )
   }
 
-  if(!data?.session && !data?.user){
-    router.push("/sign-in");
-  }
   return (
     <div className="flex min-h-screen items-center justify-center bg-background font-sans">
   <div className="w-full max-w-md px-4">
