@@ -13,7 +13,7 @@ export default function Home() {
 
   useEffect(() => {
     if(!isPending && (data?.session || data?.user)) {
-      router.push("/");
+      router.push("/sign-in");
     }
   })
   
