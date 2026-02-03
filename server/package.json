@@ -4,7 +4,7 @@
   "description": "",
   "main": "src/index.js",
   "bin": {
-    "orbital": "./src/cli/main.js"
+    "cliq": "./src/cli/main.js"
   },
   "scripts": {
     "dev": "nodemon src/index.js",

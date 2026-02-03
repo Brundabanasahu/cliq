@@ -5,6 +5,8 @@ import {Button} from "./ui/button";
 import { Card, CardContent} from "./ui/card";
 import{authClient } from "@/lib/auth-client";
 import { useState } from "react";
+import bg from "@/public/bg.svg";
+import git from "@/public/git.svg";
 
 export const LoginForm = () => {
     const router = useRouter();
@@ -12,7 +14,7 @@ export const LoginForm = () => {
     return (
         <div className="flex flex-col gap-6 justify-center items-center">
             <div className="flex flex-col items-center justify-center space-y-4">
-            <Image src={"/login.svg"} alt="Login" height={500} width={500}/>
+            <Image src={bg} alt="Login" height={500} width={500}/>
             <h1 className="text-6xl font-extrabold text-indigo-400">Welcome Back!</h1>
             <p className="text-base font-medium text-zinc-400">Login to your account for allowing device flow</p>
             </div>
@@ -30,7 +32,7 @@ export const LoginForm = () => {
               callbackURL: "http://localhost:3000",
             })}
         >
-            <Image src={"github.svg"}alt="Github-logo" height={16} width={16} className="size-4 dark:invert"/>
+            <Image src={git}alt="Github-logo" height={16} width={16} className="size-4 dark:invert"/>
             Continue with GitHub
           </Button>
         

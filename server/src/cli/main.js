@@ -19,7 +19,7 @@ async function main(){
     )
     console.log(chalk.yellow("A CLI based AI tool\n"))
 
-    const program =new Command("orbital")
+    const program =new Command("cliq");
 
     program.version("0.0.1")
     .description("CLIQ - A CLI based AI Tool")
