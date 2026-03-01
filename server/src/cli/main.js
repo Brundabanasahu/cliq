@@ -5,6 +5,7 @@ import chalk from "chalk";
 import figlet from "figlet";
 
 import { Command } from "commander";
+import {login} from "./commands/auth/login.js";
 
 dotenv.config();
 
@@ -23,6 +24,7 @@ async function main(){
 
     program.version("0.0.1")
     .description("CLIQ - A CLI based AI Tool")
+    .addCommand(login)
 
     program.action(()=>{
     program.help();
