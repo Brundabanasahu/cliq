@@ -75,7 +75,7 @@ export default function Home() {
             onClick={() =>
               authClient.signOut({
                 fetchOptions: {
-                  onError: (ctx) => console.log(ctx),
+                  onError: () => console.log(),
                   onSuccess: () => router.push("/sign-in"),
                 },
               })

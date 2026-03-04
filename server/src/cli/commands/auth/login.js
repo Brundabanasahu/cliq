@@ -201,8 +201,69 @@ async function pollForToken(authClient, deviceCode, clientId, initialInterval) {
     });
 }
 
+export async function logoutAction(){
+    intro(chalk.bold("Logout"));
+    const token =await getStoredToken();
+
+    if(!token){
+        console.log(chalk.yellow("You're not logged in."));
+        process.exit(0);
+    }
+    const shouldLogout=await confirm({
+        message:"Are you sure you want to logout?",
+        initialValue:false,
+    });
+    if(isCancel(shouldLogout)|| !shouldLogout){
+        cancel("Logout cancelled");
+        process.exit(0);
+    }
+    const cleaed =await clearStoredToken();
+
+    if(cleared){
+        outro(chalk.green("Successfully logged out!"));
+    }else{
+        console.log(chalk.yellow("could not clear token file."));
+    }
+}
+
+export async function whoamiActivity(opts){
+    const token=await requiredAuth();
+    if(!token?.access_token){
+        console.log("No access token found.please login");
+        process.exit(1);
+    }
+    const user=await prisma.user.findFirst({
+        where:{
+            sessions:{
+                some:{
+                    token:token.access_token,
+                },
+            },
+        },
+        select:{
+            id:true,
+            name:true,
+            email:true,
+            image:true,
+        },
+    });
+
+    chalk.bold.greenBright(`\n user:${user.name}
+            Email:${user.email}
+            ID:${user.id}`)
+}
 export const login = new Command("login")
     .description("Login to the BetterAuth")
     .option("--server-url <url>", "The better auth server URL", URL)
     .option("--client-url <url>", "The OAuth client Id", CLIENT_ID)
     .action(loginAction);
+
+
+export const logout = new Command("logout")
+  .description("Logout and clear stored credentials")
+  .action(logoutAction);
+
+export const whoami = new Command("whoami")
+  .description("Show current authenticated user")
+  .option("--server-url <url>", "The Better Auth server URL", DEMO_URL)
+  .action(whoamiAction);    

@@ -25,6 +25,8 @@ async function main(){
     program.version("0.0.1")
     .description("CLIQ - A CLI based AI Tool")
     .addCommand(login)
+    .addCommand(logout)
+    .addCommand(whoami)
 
     program.action(()=>{
     program.help();
