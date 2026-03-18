@@ -59,8 +59,88 @@ async function getUserFromToken(){
 }
 
 
+async function initConversation(userId,conversationId=null,mode="chat"){
+    const spinner=yoctoSpinner({ text:"Loading conversation..."}).start();
 
+    const conversation= await chatService.getOrCreateconversation(
+        userId,
+        conversationId,
+        mode
+    )
+    spinner.success("Conversation Loaded")
+    const conversationInfo=boxen(
+        '${chalk.bold("Conversation")}:${conversation.title}\n${chalk.gray("ID: "+conversation.id)}\n${chalk.gray("mode: "+conversation,mode)}',
+        {
+            padding:1,
+            margin:{top:1,bottom:1},
+            borderStyle:"round",
+            borderColor:"cyan",
+            title:"Chat Session",
+            titleAlignment:"center",
+        }
+    );
+    console.log(conversationinfo)
 
+    if(conversation.messages?.length>0){
+        console.log(chalk.yellow("previous messages:\n"));
+        displayMessages(conversation.messages);
+    }
+    return conversation
+
+    function displayMessages(messages) {
+  messages.forEach((msg) => {
+    if (msg.role === "user") {
+      const userBox = boxen(chalk.white(msg.content), {
+        padding: 1,
+        margin: { left: 2, bottom: 1 },
+        borderStyle: "round",
+        borderColor: "blue",
+        title: "👤 You",
+        titleAlignment: "left",
+      });
+
+      console.log(userBox);
+    } else {
+      // Render markdown for assistant messages
+      const renderedContent = marked.parse(msg.content);
+      const assistantBox = boxen(renderedContent.trim(), {
+        padding: 1,
+        margin: { left: 2, bottom: 1 },
+        borderStyle: "round",
+        borderColor: "green",
+        title: "🤖 Assistant",
+        titleAlignment: "left",
+      });
+
+      console.log(assistantBox);
+    }
+  });
+}
+async function saveMessage(conversationId, role, content) {
+  return await chatService.addMessage(conversationId, role, content);
+}
+
+async function updateConversationTitle(conversationId, userInput, messageCount) {
+  if (messageCount === 1) {
+    const title =
+      userInput.slice(0, 50) + (userInput.length > 50 ? "..." : "");
+    await chatService.updateTitle(conversationId, title);
+  }
+}
+async function chatLoop(conversation) {
+  const helpBox = boxen(
+    `${chalk.gray("• Type your message and press Enter")}\n${chalk.gray("• Markdown formatting is supported in responses")}\n${chalk.gray("• Type \"exit\" to end conversation")}\n${chalk.gray("• Press Ctrl+C to quit anytime")}`,
+    {
+      padding: 1,
+      margin: { bottom: 1 },
+      borderStyle: "round",
+      borderColor: "gray",
+      dimBorder: true,
+    }
+  );
+}
+
+}
 
 
 
