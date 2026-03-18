@@ -266,4 +266,4 @@ export const logout = new Command("logout")
 export const whoami = new Command("whoami")
   .description("Show current authenticated user")
   .option("--server-url <url>", "The Better Auth server URL", DEMO_URL)
-  .action(whoamiAction);    
+  .action(whoamiAction);

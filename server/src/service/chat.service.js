@@ -1,58 +1,141 @@
 import prisma from "../lib/db.js";
 
-export class ChatService{
-    /**
-     * Create a new conversation
-     * @param {string} userId - User ID
-     * @param {string} mode - chat,tool, or agent
-     * @param {string} title - optional conversation title
-     */
+export class ChatService {
+  /**
+   * Create a new conversation
+   * @param {string} userId - User ID
+   * @param {string} mode - chat, tool, or agent
+   * @param {string|null} title - Optional conversation title
+   * @returns {Promise<Object>} Created conversation
+   */
+  async createConversation(userId, mode = "chat", title = null) {
+    return prisma.conversation.create({
+      data: {
+        userId,
+        mode,
+        title: title || `New ${mode} conversation`,
+      },
+    });
+  }
 
+  /**
+   * Get existing conversation or create a new one
+   * @param {string} userId - User ID
+   * @param {string|null} conversationId - Conversation ID (optional)
+   * @param {string} mode - chat, tool, or agent
+   * @returns {Promise<Object>} Conversation with messages
+   */
+  async getOrCreateConversation(userId, conversationId = null, mode = "chat") {
+    if (conversationId) {
+      const conversation = await prisma.conversation.findFirst({
+        where: {
+          id: conversationId,
+          userId,
+        },
+        include: {
+          messages: {
+            orderBy: {
+              createdAt: "asc",
+            },
+          },
+        },
+      });
 
-    async createConversation(userId,mode="chat",title=null){
-        return prisma.conversation.create({
-            data:{
-                userId,
-                mode,
-                title:title || 'New ${mode} conversation'
-            }
-        })
+      if (conversation) return conversation;
     }
 
-     /**
-     * Create a new conversation
-     * @param {string} userId - User ID
-     * @param {string} conversationId - Optional conversation ID
-     * @param {string} title - chat,tool or agent
-     */
+    return await this.createConversation(userId, mode);
+  }
 
-     async getOrCreateConversation(userId,conversationId=null,mode="chat"){
-        if(conversationId){
-            const conversation=await prisma.conversation.findFirst({
-                where:{
-                    id:conversationId,
-                    userId
-                },
-                include:{
-                    messages:{
-                        orderBy:{
-                            createdAt:"asc"
-                        }
-                    }
-                }
-            });
+  /**
+   * Add a message to a conversation
+   * @param {string} conversationId - Conversation ID
+   * @param {string} role - user, assistant, system, tool
+   * @param {string|Object} content - Message content
+   * @returns {Promise<Object>} Created message
+   */
+  async addMessage(conversationId, role, content) {
+    const contentStr =
+      typeof content === "string" ? content : JSON.stringify(content);
 
-            if(conversation) return conversation
-        }
-        return await this.createConversation(userId,mode)
-     }
+    const message = await prisma.message.create({
+      data: {
+        conversationId,
+        role,
+        content: contentStr,
+      },
+    });
 
-        
-     /**
-      * @param {string} conversationId - conversation ID
-      * @param {string} role - user,assistant, system,tool
-      * @param {string|object} content - message content
-      * 
-      * 
-      */
+    // 🔥 Update conversation timestamp (important for sorting)
+    await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { updatedAt: new Date() },
+    });
+
+    return message;
+  }
+
+  /**
+   * Get all messages of a conversation
+   * @param {string} conversationId - Conversation ID
+   * @returns {Promise<Array>} List of messages
+   */
+  async getMessages(conversationId) {
+    return await prisma.message.findMany({
+      where: {
+        conversationId,
+      },
+      orderBy: {
+        createdAt: "asc",
+      },
+    });
+  }
+
+  /**
+   * Get all conversations of a user
+   * @param {string} userId - User ID
+   * @returns {Promise<Array>} List of conversations
+   */
+  async getUserConversations(userId) {
+    return await prisma.conversation.findMany({
+      where: { userId },
+      orderBy: { updatedAt: "desc" },
+      include: {
+        messages: {
+          take: 1, // only latest message
+          orderBy: {
+            createdAt: "desc",
+          },
+        },
+      },
+    });
+  }
+
+  /**
+   * Delete a conversation
+   * @param {string} conversationId - Conversation ID
+   * @param {string} userId - User ID
+   * @returns {Promise<Object>} Delete result
+   */
+  async deleteConversation(conversationId, userId) {
+    return await prisma.conversation.deleteMany({
+      where: {
+        id: conversationId,
+        userId,
+      },
+    });
+  }
+
+  /**
+   * Update conversation title
+   * @param {string} conversationId - Conversation ID
+   * @param {string} title - New title
+   * @returns {Promise<Object>} Updated conversation
+   */
+  async updateTitle(conversationId, title) {
+    return await prisma.conversation.update({
+      where: { id: conversationId },
+      data: { title },
+    });
+  }
 }
