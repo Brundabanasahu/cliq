@@ -35,6 +35,16 @@ async sendMessage(messages,onChunk,tools=undefined,onToolCall=nuLL){
             model:this.model,
             message:messages,
         }
+        
+        if(tools && Object.keys(tools).length>0){
+            streamConfig.tools=tools;
+            streamconfig.maxSteps=5
+
+            console.log(chalk.gray('[DEBUG] Tools enabled: ${Object.keys(tools).join(',')}'));
+
+        }
+
+
         const result=streamText(streamConfig);
         let fullResponse=""
         
@@ -45,6 +55,43 @@ async sendMessage(messages,onChunk,tools=undefined,onToolCall=nuLL){
             }
         }
         const fullResult=result;
+
+        const toolCalls=[];
+        const toolResult=[];
+
+        if(fullResult.steps && Array.isArray(fullResult.steps)){
+            for(const step of fullResult.steps){
+                if(step.toolCalls && step.toolCalls.length>0){
+                    for(const toolCall of step.toolCalls){
+                        toolcalls.push(toolCall);
+
+                        if(onToolcall){
+                            onToolCall(toolCall)
+                        }
+                    }
+                }
+
+                if(step.toolResults && step.toolResults.length>0){
+                    toolResults.push(...step.toolResults)
+                }
+
+
+            }
+        }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
         return{
             content:fullResponse,
             finishResponse:fullResult.finishReason,
