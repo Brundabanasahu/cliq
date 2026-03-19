@@ -120,6 +120,56 @@ async function saveMessage(conversationId, role, content) {
   return await chatService.addMessage(conversationId, role, content);
 }
 
+async function getAIResponse(conversationId){
+  const spinner=yoctoSpinner({
+    text:"AI is thinking...",
+    color:"cyan"
+  }).start();
+
+const dbMessages=await chatService.getMessages(conversationId)
+const aiMessages=chatService.formatMessagesForAI(dbMessages)
+
+let fullResponse=""
+let isFirstChunk=true;
+
+try{
+  const result=await aiService.sendMessage(aiMessages,(chunk)=>{
+    if(isFirstchunk){
+      spinner.stop();
+      console.log("\n");
+      const header=chalk.green.bold("Assitant:");
+      console.log(header);
+      console.log(chalk.gray("--".repeat(60)));
+      isFirstchunk=false;
+    }
+    fullResponse+=chunk;
+  });
+  console.log("\n");
+  const renderedMarkdown=marked.parse(fullResponse);
+  console.log(renderedMarkdown);
+  console.log(chalk.gray("--".repeat(60)));
+  console.log("\n");
+
+return result.content;
+}catch(error){
+  spinner.error("failed to get AI response");
+  throw error;
+
+}
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
 async function updateConversationTitle(conversationId, userInput, messageCount) {
   if (messageCount === 1) {
     const title =
@@ -138,6 +188,47 @@ async function chatLoop(conversation) {
       dimBorder: true,
     }
   );
+  console.log(helpBox)
+  while(true){
+    const userInput=await text({
+      message:chalk.blue("Your message"),
+      placeholder:"Type your message...",
+      validate(value){
+        if(!value|| value.trim().length===0){
+          return "Message cannot be empty";
+        }
+      },
+    })
+    if(isCancel(userinput)){
+      const exitBox=boxen(chalk.yellow("Chat session ended.GoodBye",{
+        padding:1,
+        margin:1,
+        borderStyle:"round",
+        borderColor:"yellow",
+      }));
+      console.log(exitbox);
+      process.exit(0);
+    }
+    if(userInput.toLowerCase()==="exit"){
+      const exitBox=boxen(chalk.yellow("chat session ended.GoodBye"),{
+        padding:1,
+        margin:1,
+        borderStyle:"round",
+        borderColor:"yellow",
+      });
+      console.log(exitBox);
+      break;
+    }
+    await saveMessage(conversation.id,"user",userInput);
+
+    const messages=await chatService.getMessages(conversation.id)
+
+    const airesponse=await getAIResponse(conversation.id)
+
+    await saveMessage(conversation.id,"assistant",aiResponse)
+
+    await updateConversationTitle(conversation.id,userInput,messages.length)
+  }
 }
 
 }

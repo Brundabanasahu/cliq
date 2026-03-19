@@ -70,17 +70,6 @@ async getMessage(messages,tools=undefined){
     })
     return fullResponse
 }
-
-
-
-
-
-
-
-
-
-
-
 }
 
 

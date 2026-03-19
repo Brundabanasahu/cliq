@@ -63,7 +63,7 @@ const wakeUpAction=async()=>{
 
     switch(choice){
         case "chat":
-            console.log("Chat is Selected")
+            console.log("Chat")
             break;
         case "tool":
             console.log(chalk.green("Tool calling is selected"))
