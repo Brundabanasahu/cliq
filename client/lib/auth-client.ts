@@ -1,9 +1,9 @@
 import { createAuthClient } from "better-auth/react"
-import { deviceAuthorizationClient } from "better-auth/plugins"
+import { deviceAuthorization } from "better-auth/plugins"
 
 export const authClient = createAuthClient({
-  baseURL: "http://localhost:3005",
+  baseURL: "http://localhost:3005", // ✅ FIXED
   plugins: [
-    deviceAuthorizationClient()
+    deviceAuthorization()
   ]
 })

@@ -1,7 +1,7 @@
 import { cancel, confirm, intro, isCancel, outro } from "@clack/prompts";
 import { logger } from "better-auth";
 import { createAuthClient } from "better-auth/client";
-import { deviceAuthorizationClient } from "better-auth/client/plugins";
+import { deviceAuthorization } from "better-auth/plugins";
 
 import chalk from "chalk";
 import { Command } from "commander";
@@ -53,7 +53,7 @@ export async function loginAction(opts) {
 
   const authClient = createAuthClient({
     baseURL: serverUrl,
-    plugins: [deviceAuthorizationClient()]
+    plugins: [deviceAuthorization()]
   });
 
   const spinner = yoctoSpinner({ text: "Requesting device authorization..." });
@@ -81,11 +81,12 @@ export async function loginAction(opts) {
       expires_in,
     } = data;
 
-    console.log(
-      `Visit: ${chalk.underline.blue(
-        verification_url || verification_url_complete
-      )}`
-    );
+    const url =
+  verification_url ||
+  verification_url_complete ||
+  "http://localhost:3005/device";
+
+console.log(`Visit: ${chalk.underline.blue(url)}`);
 
     console.log(`Code: ${chalk.bold.green(user_code)}`);
 
@@ -95,7 +96,7 @@ export async function loginAction(opts) {
     });
 
     if (!isCancel(shouldOpen) && shouldOpen) {
-      await open(verification_url || verification_url_complete);
+      await open(url);
     }
 
     console.log(

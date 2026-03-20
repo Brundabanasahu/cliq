@@ -45,7 +45,7 @@ const DeviceApprovalpage = () => {
 
       await authClient.device.approve({
         userCode: userCode!
-      })
+        })
 
       toast.dismiss("loading")
       toast.success("Device approved successfully")
@@ -83,7 +83,6 @@ const DeviceApprovalpage = () => {
     <div className="flex min-h-screen items-center justify-center bg-background font-sans">
       <div className="w-full max-w-md px-4">
         <div className="space-y-8">
-          {/* UI unchanged below */}
           ...
         </div>
       </div>
