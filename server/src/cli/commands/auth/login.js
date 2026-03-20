@@ -17,253 +17,241 @@ import prisma from "../../../lib/db.js";
 dotenv.config();
 
 const URL = "http://localhost:3005";
+const DEMO_URL = "http://localhost:3000";
 const CLIENT_ID = process.env.GITHUB_CLIENT_ID;
+
 export const CONFIG_DIR = path.join(os.homedir(), ".better-auth");
 export const TOKEN_FILE = path.join(CONFIG_DIR, "token.json");
 
+
+// ================== LOGIN ==================
 export async function loginAction(opts) {
-    const options = z.object({
-        serverUrl: z.string().optional(),
-        clientId: z.string().optional()
-    }).parse(opts || {}); // FIXED
+  const options = z.object({
+    serverUrl: z.string().optional(),
+    clientId: z.string().optional()
+  }).parse(opts || {});
 
-    const serverUrl = options.serverUrl || URL;
-    const clientId = options.clientId || CLIENT_ID;
+  const serverUrl = options.serverUrl || URL;
+  const clientId = options.clientId || CLIENT_ID;
 
-    intro(chalk.bold("🔏Auth CLIQ login"));
+  intro(chalk.bold("🔏 Auth CLIQ login"));
 
-    const existingToken = await getstored();
-    const expired = await isTokenExpired();
+  const existingToken = await getStoredToken(); // FIXED
+  const expired = await isTokenExpired();
 
-    if (existingToken && !expired) {
-        const shouldReAuth = await confirm({
-            message: "You are already loggedIn. Do you want to login Again",
-            initialValue: false
+  if (existingToken && !expired) {
+    const shouldReAuth = await confirm({
+      message: "You are already logged in. Login again?",
+      initialValue: false
+    });
+
+    if (isCancel(shouldReAuth) || !shouldReAuth) {
+      cancel("Login Cancelled");
+      process.exit(0);
+    }
+  }
+
+  const authClient = createAuthClient({
+    baseURL: serverUrl,
+    plugins: [deviceAuthorizationClient()]
+  });
+
+  const spinner = yoctoSpinner({ text: "Requesting device authorization..." });
+  spinner.start();
+
+  try {
+    const { data, error } = await authClient.device.code({
+      client_id: clientId,
+      scope: "openid profile email"
+    });
+
+    spinner.stop();
+
+    if (error || !data) {
+      logger.error(`Failed: ${error}`);
+      process.exit(1);
+    }
+
+    const {
+      device_code,
+      user_code,
+      verification_url,
+      verification_url_complete,
+      interval = 5,
+      expires_in,
+    } = data;
+
+    console.log(
+      `Visit: ${chalk.underline.blue(
+        verification_url || verification_url_complete
+      )}`
+    );
+
+    console.log(`Code: ${chalk.bold.green(user_code)}`);
+
+    const shouldOpen = await confirm({
+      message: "Open browser?",
+      initialValue: true
+    });
+
+    if (!isCancel(shouldOpen) && shouldOpen) {
+      await open(verification_url || verification_url_complete);
+    }
+
+    console.log(
+      chalk.gray(`Waiting... (${Math.floor(expires_in / 60)} min)`)
+    );
+
+    const token = await pollForToken(
+      authClient,
+      device_code,
+      clientId,
+      interval
+    );
+
+    if (token) {
+      await storeToken({
+        ...token,
+        created_at: Math.floor(Date.now() / 1000)
+      });
+    }
+
+    outro(chalk.green("Login successful!"));
+
+  } catch (err) {
+    spinner.stop();
+    console.error(chalk.red("Login Failed:"), err.message);
+    process.exit(1);
+  }
+}
+
+
+// ================== POLLING ==================
+async function pollForToken(authClient, deviceCode, clientId, interval) {
+  return new Promise((resolve) => {
+    const poll = async () => {
+      try {
+        const { data } = await authClient.device.token({
+          grant_type: "urn:ietf:params:oauth:grant-type:device_code",
+          device_code: deviceCode,
+          client_id: clientId,
         });
 
-        if (isCancel(shouldReAuth) || !shouldReAuth) {
-            cancel("Login Cancelled");
-            process.exit(0);
+        if (data?.access_token) {
+          console.log(chalk.green("Authenticated ✅"));
+          resolve(data);
+          return;
         }
-    }
+      } catch {}
 
-    const authClient = createAuthClient({
-        baseURL: serverUrl,
-        plugins: [deviceAuthorizationClient()]
-    });
+      setTimeout(poll, interval * 1000);
+    };
 
-    const spinner = yoctoSpinner({ text: "Requesting device authorization..." });
-    spinner.start();
-
-    try {
-        const { data, error } = await authClient.device.code({
-            client_id: clientId,
-            scope: "openid profile email"
-        });
-
-        spinner.stop();
-
-        if (error || !data) {
-            logger.error(`Failed to request device authorization: ${error}`);
-            process.exit(1);
-        }
-
-        const {
-            device_code,
-            user_code,
-            verification_url,
-            verification_url_complete,
-            interval = 5,
-            expires_in,
-        } = data;
-
-        console.log(
-            `Please visit ${chalk.underline.blue(
-                verification_url || verification_url_complete
-            )}`
-        );
-
-        console.log(`Enter the code: ${chalk.bold.green(user_code)}`);
-
-        const shouldOpen = await confirm({
-            message: "Open Browser automatically",
-            initialValue: true
-        });
-
-        if (!isCancel(shouldOpen) && shouldOpen) {
-            const urlToOpen = verification_url || verification_url_complete;
-            await open(urlToOpen);
-        }
-
-        console.log(
-            chalk.gray(
-                `Waiting for authorization (Expires in ${Math.floor(
-                    expires_in / 60
-                )} minutes)...`
-            )
-        );
-
-        const token = await pollForToken(
-            authClient,
-            device_code,
-            clientId,
-            interval
-        );
-
-        if (token) {
-            const saved = await storeToken(token);
-            if (!saved) {
-                console.log(
-                    chalk.yellow("\n Warning:could not save authentication token.")
-                );
-                console.log(
-                    chalk.yellow(" you may need to login again on next use.")
-                );
-            }
-        }
-
-        outro(chalk.green("Login successfull!! "));
-        console.log(chalk.gray(`\n Token saved to: ${TOKEN_FILE}`));
-        console.log(
-            chalk.gray("you can now use AI command without logging in again\n")
-        );
-
-    } catch (error) {
-        spinner.stop();
-        console.error(chalk.red("\nLogin Failed:"), error.message);
-        process.exit(1);
-    }
+    poll();
+  });
 }
 
-async function pollForToken(authClient, deviceCode, clientId, initialInterval) {
-    let pollingInterval = initialInterval;
-    const spinner = yoctoSpinner({ text: "", color: "cyan" });
-    let dots = 0;
 
-    return new Promise((resolve, reject) => {   // FIXED
-        const poll = async () => {
-            dots = (dots + 1) % 4;
+// ================== LOGOUT ==================
+export async function logoutAction() {
+  intro("Logout");
 
-            spinner.text = chalk.gray(
-                `polling for authorization${".".repeat(dots)}${" ".repeat(3 - dots)}`
-            );
+  const token = await getStoredToken();
 
-            if (!spinner.isSpinning) spinner.start();
+  if (!token) {
+    console.log("Not logged in");
+    return;
+  }
 
-            try {
-                const { data, error } = await authClient.device.token({
-                    grant_type: "urn:ietf:params:oauth:grant-type:device_code",
-                    device_code: deviceCode,
-                    client_id: clientId,
-                    fetchOptions: {
-                        headers: {
-                            "user-agent": "My CLI",
-                        },
-                    },
-                });
+  const confirmLogout = await confirm({
+    message: "Logout?",
+    initialValue: false
+  });
 
-                if (data?.access_token) {
-                    console.log(   // FIXED
-                        chalk.bold.yellow(`Your access token: ${data.access_token}`)
-                    );
-                    spinner.stop();
-                    resolve(data);
-                    return;
-                } else if (error) {
-                    switch (error.error) {
-                        case "authorization_pending":
-                            break;
-                        case "slow_down":
-                            pollingInterval += 5;
-                            break;
-                        case "access_denied":
-                            console.error("Access was denied by the user");
-                            return;
-                        case "expired_token":
-                            console.error("The device code has expired. Please try again.");
-                            return;
-                        default:
-                            spinner.stop();
-                            logger.error(`Error: ${error.error_description}`);
-                            process.exit(1); // FIXED
-                    }
-                }
-            } catch (err) {   // FIXED
-                spinner.stop();
-                logger.error(`Network error: ${err.message}`);  // FIXED
-                process.exit(1); // FIXED
-            }
+  if (isCancel(confirmLogout) || !confirmLogout) {
+    cancel("Cancelled");
+    return;
+  }
 
-            setTimeout(poll, pollingInterval * 1000);
-        };
+  const cleared = await clearStoredToken(); // FIXED
 
-        setTimeout(poll, pollingInterval * 1000);  // FIXED
-    });
+  if (cleared) {
+    outro("Logged out ✅");
+  }
 }
 
-export async function logoutAction(){
-    intro(chalk.bold("Logout"));
-    const token =await getStoredToken();
 
-    if(!token){
-        console.log(chalk.yellow("You're not logged in."));
-        process.exit(0);
-    }
-    const shouldLogout=await confirm({
-        message:"Are you sure you want to logout?",
-        initialValue:false,
-    });
-    if(isCancel(shouldLogout)|| !shouldLogout){
-        cancel("Logout cancelled");
-        process.exit(0);
-    }
-    const cleaed =await clearStoredToken();
+// ================== WHOAMI ==================
+export async function whoamiActivity() {
+  const token = await getStoredToken();
 
-    if(cleared){
-        outro(chalk.green("Successfully logged out!"));
-    }else{
-        console.log(chalk.yellow("could not clear token file."));
+  if (!token?.access_token) {
+    console.log("Please login first");
+    return;
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      sessions: {
+        some: { token: token.access_token }
+      }
     }
+  });
+
+  console.log(
+    chalk.green(`User: ${user?.name}\nEmail: ${user?.email}`)
+  );
 }
 
-export async function whoamiActivity(opts){
-    const token=await requiredAuth();
-    if(!token?.access_token){
-        console.log("No access token found.please login");
-        process.exit(1);
-    }
-    const user=await prisma.user.findFirst({
-        where:{
-            sessions:{
-                some:{
-                    token:token.access_token,
-                },
-            },
-        },
-        select:{
-            id:true,
-            name:true,
-            email:true,
-            image:true,
-        },
-    });
 
-    chalk.bold.greenBright(`\n user:${user.name}
-            Email:${user.email}
-            ID:${user.id}`)
+// ================== TOKEN HELPERS ==================
+async function getStoredToken() {
+  try {
+    const data = await fs.readFile(TOKEN_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch {
+    return null;
+  }
 }
+
+async function storeToken(token) {
+  await fs.mkdir(CONFIG_DIR, { recursive: true });
+  await fs.writeFile(TOKEN_FILE, JSON.stringify(token, null, 2));
+  return true;
+}
+
+async function clearStoredToken() {
+  try {
+    await fs.unlink(TOKEN_FILE);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function isTokenExpired() {
+  const token = await getStoredToken();
+  if (!token?.expires_in || !token?.created_at) return true;
+
+  const now = Math.floor(Date.now() / 1000);
+  return now > token.created_at + token.expires_in;
+}
+
+
+// ================== COMMANDS ==================
 export const login = new Command("login")
-    .description("Login to the BetterAuth")
-    .option("--server-url <url>", "The better auth server URL", URL)
-    .option("--client-url <url>", "The OAuth client Id", CLIENT_ID)
-    .action(loginAction);
-
+  .description("Login")
+  .option("--server-url <url>", "Server URL", URL)
+  .action(loginAction);
 
 export const logout = new Command("logout")
-  .description("Logout and clear stored credentials")
+  .description("Logout")
   .action(logoutAction);
 
 export const whoami = new Command("whoami")
-  .description("Show current authenticated user")
-  .option("--server-url <url>", "The Better Auth server URL", DEMO_URL)
-  .action(whoamiAction);
+  .description("Show current user")
+  .action(whoamiActivity);
+
+export const wakeup = new Command("wakeup")
+  .description("Wake up CLI")
+  .action(() => console.log("CLIQ is awake 🚀"));
