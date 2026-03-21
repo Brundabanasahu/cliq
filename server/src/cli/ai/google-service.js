@@ -16,9 +16,6 @@ export class AIService{
 }
 
 
-
-
-
 /**
  * Send a message and get streaming responser
  * @param {Array} messages
@@ -33,7 +30,7 @@ async sendMessage(messages,onChunk,tools=undefined,onToolCall=nuLL){
     try{
         const streamConfig={
             model:this.model,
-            message:messages,
+            messages:messages,
         }
         
         if(tools && Object.keys(tools).length>0){
@@ -79,19 +76,7 @@ async sendMessage(messages,onChunk,tools=undefined,onToolCall=nuLL){
             }
         }
 
-
-
-
-
-
-
-
-
-
-
-
-
-
+        
         return{
             content:fullResponse,
             finishResponse:fullResult.finishReason,

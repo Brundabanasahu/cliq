@@ -1,4 +1,4 @@
-import fs from "node:fs/promises";   // FIXED (missing import)
+import fs from "fs/promises";   // FIXED (missing import)
 import chalk from "chalk";           // FIXED (missing import)
 import { TOKEN_FILE, CONFIG_DIR } from "../cli/commands/auth/login.js"; // FIXED (CONFIG_DIR missing)
 

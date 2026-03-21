@@ -21,11 +21,11 @@ const DeviceAuthorizationPage = () => {
       const formattedCode = usercode.trim().replace(/-/g, "").toUpperCase()
 
       const response = await authClient.device({
-        query: { user_code: formattedCode }
+        query: { user_code: formattedCode },
       })
 
       if (response.data) {
-        router.push(`/approve?user_code=${formattedCode}`)
+        router.push(`/approve?user_code=${formattedCode}`) 
       }
     } catch (error) {
       setError("invalid or expired code")
