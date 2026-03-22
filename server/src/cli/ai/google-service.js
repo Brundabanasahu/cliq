@@ -1,4 +1,4 @@
-import  {google} from "@ai-sdk/google";
+import { google } from "@ai-sdk/google";
 import {streamText} from "ai";
 import {config} from "../../config/google.config.js"
 import chalk from "chalk"
@@ -7,12 +7,14 @@ import chalk from "chalk"
 
 export class AIService{
     constructor(){
-        if(!config.googleApiKey){
-            throw new Error("GOOGLE_API_KEY is not set in env")
-        }
-        this.model=google(config.model,{
-            apiKey:config.googleApikey,
-    })
+    if(!config.googleApiKey){
+        throw new Error("GOOGLE_API_KEY is not set in env")
+    }
+
+    this.model = google(config.model, {
+        apiKey: config.googleApiKey,
+    });
+
 }
 
 
@@ -42,7 +44,7 @@ async sendMessage(messages,onChunk,tools=undefined,onToolCall=nuLL){
         }
 
 
-        const result=streamText(streamConfig);
+        const result = await streamText(streamConfig);
         let fullResponse=""
         
         for await (const chunk of result.textStream){
@@ -54,7 +56,7 @@ async sendMessage(messages,onChunk,tools=undefined,onToolCall=nuLL){
         const fullResult=result;
 
         const toolCalls=[];
-        const toolResult=[];
+        const toolResults=[];
 
         if(fullResult.steps && Array.isArray(fullResult.steps)){
             for(const step of fullResult.steps){

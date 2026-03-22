@@ -30,12 +30,12 @@ export class ChatService {
       const conversation = await prisma.conversation.findFirst({
         where: {
           id: conversationId,
-          userId,
+          userId
         },
         include: {
           messages: {
             orderBy: {
-              createdAt: "asc",
+              createdAt: "asc"
             },
           },
         },
@@ -81,7 +81,7 @@ export class ChatService {
    * @returns {Promise<Array>} List of messages
    */
   async getMessages(conversationId) {
-    return await prisma.message.findMany({
+    const messages= await prisma.message.findMany({
       where: {
         conversationId,
       },
@@ -89,6 +89,11 @@ export class ChatService {
         createdAt: "asc",
       },
     });
+
+    return messages.map((msg)=>({
+      ...msg,
+      content:this.parseContent(msg.content),
+    }));
   }
 
   /**
@@ -96,7 +101,7 @@ export class ChatService {
    * @param {string} userId - User ID
    * @returns {Promise<Array>} List of conversations
    */
-  async getUserConversations(userId) {
+  async getUserConversation(userId) {
     return await prisma.conversation.findMany({
       where: { userId },
       orderBy: { updatedAt: "desc" },
@@ -137,5 +142,20 @@ export class ChatService {
       where: { id: conversationId },
       data: { title },
     });
+  }
+
+  parseContent(content){
+    try{
+      return JSON.parse(content);
+    }catch{
+      return content;
+    }
+  }
+
+  formatMessagesForAI(messages){
+    return messages.map(msg => ({
+  role: msg.role,
+  content: msg.content   // ✅ STRING only
+}));
   }
 }

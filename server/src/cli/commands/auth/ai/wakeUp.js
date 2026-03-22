@@ -1,9 +1,10 @@
 import chalk from "chalk";
 import {Command} from "commander";
 import yoctoSpinner from "yocto-spinner";
-import {getStoredToken} from "../auth/login.js";
-import prisma from "../../../lib/db.js";
+import { getStoredToken } from "../login.js";
+import prisma from "../../../../lib/db.js";
 import {select} from "@clack/prompts";
+import { startChat } from "../../../ai/chat/chat-with-ai.js";
 
 const wakeUpAction=async()=>{
     const token= await getStoredToken();
@@ -38,7 +39,7 @@ const wakeUpAction=async()=>{
         console.log(chalk.red("User not found"));
         return;
     }
-    console.log(chalk.green('Welcome back, ${user.name}!\n'))
+    console.log(chalk.green(`Welcome back, ${user.name}!\n`))
      
     const choice=await select({
         message:"Select an Option:",
@@ -63,7 +64,7 @@ const wakeUpAction=async()=>{
 
     switch(choice){
         case "chat":
-            console.log("Chat")
+            startChat("chat")
             break;
         case "tool":
             console.log(chalk.green("Tool calling is selected"))
