@@ -39,7 +39,7 @@ CLIQ is a modern full‑stack web application designed to provide a seamless and
 * Prisma
 * Nodemon
 * REST APIs
-* 
+
 
 ---
 
