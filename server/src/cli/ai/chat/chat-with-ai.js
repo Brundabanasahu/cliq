@@ -9,12 +9,16 @@ import { ChatService } from "../../../service/chat.service.js";
 import { getStoredToken } from "../../commands/auth/login.js";
 import prisma from "../../../lib/db.js";
 
-// ✅ FIXED marked config (no warnings)
+// ✅ FIXED marked config
+// ✅ FIX WARNINGS (IMPORTANT)
+marked.setOptions({
+  mangle: false,
+  headerIds: false,
+});
+
+// ✅ TERMINAL STYLING
 marked.use(
   markedTerminal({
-    mangle: false,
-    headerIds: false,
-
     code: chalk.cyan,
     blockquote: chalk.gray.italic,
     heading: chalk.green.bold,
@@ -132,7 +136,7 @@ async function saveMessage(conversationId, role, content) {
   return await chatService.addMessage(conversationId, role, content);
 }
 
-// 🤖 AI RESPONSE (FINAL FIXED)
+// 🤖 AI RESPONSE (FINAL SAFE VERSION)
 async function getAIResponse(conversationId) {
   const spinner = yoctoSpinner({
     text: "AI is thinking...",
@@ -142,7 +146,6 @@ async function getAIResponse(conversationId) {
   const dbMessages = await chatService.getMessages(conversationId);
   const aiMessages = chatService.formatMessagesForAI(dbMessages);
 
-  console.log("AI MESSAGES:", JSON.stringify(aiMessages, null, 2));
 
   let fullResponse = "";
   let isFirstChunk = true;
@@ -157,10 +160,13 @@ async function getAIResponse(conversationId) {
         isFirstChunk = false;
       }
 
-      fullResponse += chunk;
+      // ✅ SAFE CHUNK HANDLE
+      if (typeof chunk === "string") {
+        fullResponse += chunk;
+      }
     });
 
-    // ✅ spinner fallback
+    // ✅ If no streaming happened
     if (isFirstChunk) {
       spinner.stop();
       console.log("\n");
@@ -168,10 +174,19 @@ async function getAIResponse(conversationId) {
       console.log(chalk.gray("─".repeat(60)));
     }
 
-    // ✅ FINAL TEXT FIX (IMPORTANT)
+    // ✅ SAFE FALLBACK
+    if (
+      !fullResponse ||
+      typeof fullResponse !== "string" ||
+      fullResponse.trim() === ""
+    ) {
+      fullResponse = result.content || "";
+    }
+
     const finalText =
-  (fullResponse && fullResponse.trim()) ||
-  "⚠️ No response generated";
+      typeof fullResponse === "string" && fullResponse.trim()
+        ? fullResponse
+        : "⚠️ No response generated";
 
     console.log("\n");
     console.log(marked.parse(finalText));
@@ -180,22 +195,16 @@ async function getAIResponse(conversationId) {
 
     return finalText;
   } catch (error) {
-  spinner.stop();
+    spinner.stop();
 
-  console.log("\n");
-  console.log(chalk.red("❌ AI Error:"));
-
-  if (error.message.includes("quota")) {
-    console.log(chalk.yellow("⚠️ API quota exceeded. Try again later or use a new API key."));
-  } else {
+    console.log("\n");
+    console.log(chalk.red("❌ AI Error:"));
     console.log(chalk.red(error.message));
+    console.log(chalk.gray("─".repeat(60)));
+    console.log("\n");
+
+    return "⚠️ AI unavailable";
   }
-
-  console.log(chalk.gray("─".repeat(60)));
-  console.log("\n");
-
-  return "⚠️ AI unavailable (quota exceeded)";
-}
 }
 
 // 🔁 Chat loop

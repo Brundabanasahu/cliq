@@ -152,15 +152,15 @@ export class ChatService {
     }
   }
 
-  formatMessagesForAI(messages) {
+formatMessagesForAI(messages) {
   return messages.map((msg) => ({
     role: msg.role,
-    content: [
-      {
-        type: "text",
-        text: msg.content,
-      },
-    ],
+    content:
+      typeof msg.content === "string"
+        ? msg.content
+        : Array.isArray(msg.content)
+        ? msg.content.map((c) => c.text).join(" ")
+        : "",
   }));
-  }
+}
 }

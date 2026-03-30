@@ -14,55 +14,57 @@ export class AIService {
     });
   }
 
-  /**
-   * Send message with streaming + fallback
-   */
-  async sendMessage(messages, onChunk, tools = undefined, onToolCall = null) {
+  async sendMessage(messages, onChunk, tools = undefined) {
     try {
+       // debug
+
       const result = await streamText({
         model: this.model,
         messages: messages,
-        experimental_streamData: true,
       });
 
       let fullResponse = "";
 
-      // ✅ STREAM HANDLING (safe)
+      // ✅ FIXED STREAM (IMPORTANT)
       try {
-        for await (const chunk of result.fullStream) {
-          if (chunk.type === "text-delta") {
-            const text = chunk.textDelta || "";
-
-            fullResponse += text;
+        for await (const chunk of result.textStream) {
+          if (typeof chunk === "string") {
+            fullResponse += chunk;
 
             if (onChunk) {
-              onChunk(text);
+              onChunk(chunk);
             }
           }
         }
       } catch (streamError) {
-        // 🔒 stream fail hone par crash nahi hone dena
         console.warn("Stream error:", streamError.message);
       }
 
-      // ✅ FALLBACK (MOST IMPORTANT)
-     // ✅ FALLBACK SAFE CHECK
-if (
-  !fullResponse ||
-  typeof fullResponse !== "string" ||
-  fullResponse.trim() === ""
-) {
-  fullResponse = result.text || "";
-}
+      // ✅ 🔥 CORRECT FALLBACK (MAIN FIX)
+      if (
+        !fullResponse ||
+        typeof fullResponse !== "string" ||
+        fullResponse.trim() === ""
+      ) {
+        try {
+          const textResult = await result.text(); // ✅ IMPORTANT FIX
+          fullResponse =
+            typeof textResult === "string"
+              ? textResult
+              : JSON.stringify(textResult || "");
+        } catch (err) {
+          fullResponse = "";
+        }
+      }
 
-// ✅ FINAL SAFETY
-if (
-  !fullResponse ||
-  typeof fullResponse !== "string" ||
-  fullResponse.trim() === ""
-) {
-  fullResponse = "⚠️ No response generated";
-}
+      // ✅ FINAL SAFETY
+      if (
+        !fullResponse ||
+        typeof fullResponse !== "string" ||
+        fullResponse.trim() === ""
+      ) {
+        fullResponse = "⚠️ No response generated";
+      }
 
       return {
         content: fullResponse,
@@ -72,7 +74,6 @@ if (
     } catch (error) {
       console.error(chalk.red("AI Service Error:"), error.message);
 
-      // ✅ USER-FRIENDLY ERROR RESPONSE (no crash)
       return {
         content: this.handleError(error),
         finishReason: "error",
@@ -81,16 +82,15 @@ if (
     }
   }
 
-  /**
-   * Simple wrapper (non-stream use)
-   */
   async getMessage(messages, tools = undefined) {
     let fullResponse = "";
 
     const res = await this.sendMessage(
       messages,
       (chunk) => {
-        fullResponse += chunk;
+        if (typeof chunk === "string") {
+          fullResponse += chunk;
+        }
       },
       tools
     );
@@ -98,9 +98,6 @@ if (
     return fullResponse || res.content;
   }
 
-  /**
-   * 🔥 Error handler (important for CLI stability)
-   */
   handleError(error) {
     const msg = error.message || "";
 
