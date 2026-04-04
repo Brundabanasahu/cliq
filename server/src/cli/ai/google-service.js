@@ -23,9 +23,14 @@ export class AIService {
         messages: messages,
       });
 
+      if(tools && Object.keys(tools).length > 0) {
+        streamConfig.tools = tools;
+        streamConfig.maxSteps=5
+
+        console.log(chalk.gray('[DEBUG] tools enabled:${Object.keys(tools).join(',')}'));
+      }
       let fullResponse = "";
 
-      // ✅ FIXED STREAM (IMPORTANT)
       try {
         for await (const chunk of result.textStream) {
           if (typeof chunk === "string") {
@@ -35,6 +40,30 @@ export class AIService {
               onChunk(chunk);
             }
           }
+
+
+          //tool call
+          const toolCalls=[];
+          const toolResults=[];
+
+          if(fullResult.steps && Array.isArray(fullResult.steps)) {
+            for(const step of fullResult.steps) {
+              if(step.toolCalls && step.toolCalls.length > 0) {
+                for(const toolcall of step.toolCalls) {
+                  toolCalls.push(toolcall);
+                  if(onToolCall) {
+                    onToolCall(toolcall);
+                  }
+                }
+              }
+
+              if(step.toolResults && step.toolResults.length > 0) {
+                toolResults.push(...step.toolResults);
+            }
+          }
+        }
+
+
         }
       } catch (streamError) {
         console.warn("Stream error:", streamError.message);
@@ -70,6 +99,9 @@ export class AIService {
         content: fullResponse,
         finishReason: result.finishReason || "stop",
         usage: result.usage || {},
+        toolCalls,
+        toolResults,
+        steps:fullResult.steps
       };
     } catch (error) {
       console.error(chalk.red("AI Service Error:"), error.message);
