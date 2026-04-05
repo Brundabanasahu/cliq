@@ -16,20 +16,26 @@ export class AIService {
 
   async sendMessage(messages, onChunk, tools = undefined) {
     try {
-       // debug
 
       const result = await streamText({
         model: this.model,
         messages: messages,
+        ...(tools && { tools }) // ✅ tools correctly pass
       });
 
-      if(tools && Object.keys(tools).length > 0) {
-        streamConfig.tools = tools;
-        streamConfig.maxSteps=5
-
-        console.log(chalk.gray('[DEBUG] tools enabled:${Object.keys(tools).join(',')}'));
-      }
+      // ✅ FIX: declare outside
       let fullResponse = "";
+      let toolCalls = [];
+      let toolResults = [];
+
+      // ✅ DEBUG FIX
+      if (tools && Object.keys(tools).length > 0) {
+        console.log(
+          chalk.gray(
+            `[DEBUG] tools enabled: ${Object.keys(tools).join(", ")}`
+          )
+        );
+      }
 
       try {
         for await (const chunk of result.textStream) {
@@ -40,58 +46,26 @@ export class AIService {
               onChunk(chunk);
             }
           }
-
-
-          //tool call
-          const toolCalls=[];
-          const toolResults=[];
-
-          if(fullResult.steps && Array.isArray(fullResult.steps)) {
-            for(const step of fullResult.steps) {
-              if(step.toolCalls && step.toolCalls.length > 0) {
-                for(const toolcall of step.toolCalls) {
-                  toolCalls.push(toolcall);
-                  if(onToolCall) {
-                    onToolCall(toolcall);
-                  }
-                }
-              }
-
-              if(step.toolResults && step.toolResults.length > 0) {
-                toolResults.push(...step.toolResults);
-            }
-          }
-        }
-
-
         }
       } catch (streamError) {
         console.warn("Stream error:", streamError.message);
       }
 
-      // ✅ 🔥 CORRECT FALLBACK (MAIN FIX)
-      if (
-        !fullResponse ||
-        typeof fullResponse !== "string" ||
-        fullResponse.trim() === ""
-      ) {
+      // ✅ fallback
+      if (!fullResponse.trim()) {
         try {
-          const textResult = await result.text(); // ✅ IMPORTANT FIX
+          const textResult = await result.text();
           fullResponse =
             typeof textResult === "string"
               ? textResult
               : JSON.stringify(textResult || "");
-        } catch (err) {
+        } catch {
           fullResponse = "";
         }
       }
 
-      // ✅ FINAL SAFETY
-      if (
-        !fullResponse ||
-        typeof fullResponse !== "string" ||
-        fullResponse.trim() === ""
-      ) {
+      // ✅ final safety
+      if (!fullResponse.trim()) {
         fullResponse = "⚠️ No response generated";
       }
 
@@ -101,7 +75,6 @@ export class AIService {
         usage: result.usage || {},
         toolCalls,
         toolResults,
-        steps:fullResult.steps
       };
     } catch (error) {
       console.error(chalk.red("AI Service Error:"), error.message);
