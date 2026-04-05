@@ -59,7 +59,7 @@ const wakeUpAction=async()=>{
             {
                 value:"agent",
                 label:"Agentic Mode",
-                hint:"Advanced AI agent(Coming Soon)",
+                hint:"Advanced AI agent",
             },
         ],
     });
