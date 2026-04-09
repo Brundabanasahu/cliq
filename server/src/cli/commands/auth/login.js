@@ -134,12 +134,12 @@ export async function loginAction(opts) {
   const expired = await isTokenExpired();
 
   if (existingToken && !expired) {
-    const shouldReauth = await confirm({
-      message: "You're already logged in. Do you want to log in again?",
-      initialValue: false,
-    });
+    const shouldReAuth = await confirm({
+  message: "You're already logged in. Do you want to log in again?",
+  initialValue: false,
+});
 
-    if (isCancel(shouldReAuth) || !shouldReAuth) {
+if (isCancel(shouldReAuth) || !shouldReAuth) {
       cancel("Login cancelled");
       process.exit(0);
     }
