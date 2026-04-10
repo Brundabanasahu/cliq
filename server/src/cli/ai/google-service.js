@@ -20,15 +20,15 @@ export class AIService {
       const result = await streamText({
         model: this.model,
         messages: messages,
-        ...(tools && { tools }) // ✅ tools correctly pass
+        ...(tools && { tools }) 
       });
 
-      // ✅ FIX: declare outside
+      
       let fullResponse = "";
       let toolCalls = [];
       let toolResults = [];
 
-      // ✅ DEBUG FIX
+      
       if (tools && Object.keys(tools).length > 0) {
         console.log(
           chalk.gray(
@@ -51,7 +51,7 @@ export class AIService {
         console.warn("Stream error:", streamError.message);
       }
 
-      // ✅ fallback
+      
       if (!fullResponse.trim()) {
         try {
           const textResult = await result.text();
@@ -64,7 +64,7 @@ export class AIService {
         }
       }
 
-      // ✅ final safety
+      
       if (!fullResponse.trim()) {
         fullResponse = "⚠️ No response generated";
       }

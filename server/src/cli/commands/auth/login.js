@@ -30,20 +30,20 @@ export async function getStoredToken() {
     const token = JSON.parse(data);
     return token;
   } catch (error) {
-    // File doesn't exist or can't be read
+    
     return null;
   }
 }
 
 export async function storeToken(token) {
   try {
-    // Ensure config directory exists
+    
     await fs.mkdir(CONFIG_DIR, { recursive: true });
 
-    // Store token with metadata
+   
     const tokenData = {
       access_token: token.access_token,
-      refresh_token: token.refresh_token, // Store if available
+      refresh_token: token.refresh_token, 
       token_type: token.token_type || "Bearer",
       scope: token.scope,
       expires_at: token.expires_in
@@ -65,7 +65,7 @@ export async function clearStoredToken() {
     await fs.unlink(TOKEN_FILE);
     return true;
   } catch (error) {
-    // File doesn't exist or can't be deleted
+    
     return false;
   }
 }
@@ -79,7 +79,7 @@ export async function isTokenExpired() {
   const expiresAt = new Date(token.expires_at);
   const now = new Date();
 
-  // Consider expired if less than 5 minutes remaining
+  
   return expiresAt.getTime() - now.getTime() < 5 * 60 * 1000;
 }
 
@@ -169,14 +169,7 @@ if (isCancel(shouldReAuth) || !shouldReAuth) {
           error?.error_description}`
       );
 
-      // if (error?.status === 404) {
-      //   console.log(chalk.red("\n❌ Device authorization endpoint not found."));
-      //   console.log(chalk.yellow("   Make sure your auth server is running."));
-      // } else if (error?.status === 400) {
-      //   console.log(
-      //     chalk.red("\n❌ Bad request - check your CLIENT_ID configuration.")
-      //   );
-      // }
+      
 
       process.exit(1);
     }

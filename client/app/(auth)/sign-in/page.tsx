@@ -10,7 +10,7 @@ const Page = () => {
   const { data, isPending } = authClient.useSession();
   const router = useRouter();
 
-  // ✅ FIX: useEffect me redirect
+  
   useEffect(() => {
     if (data?.session && data?.user) {
       router.push("/");
@@ -25,7 +25,7 @@ const Page = () => {
     );
   }
 
-  // ✅ optional (flicker avoid)
+  
   if (data?.session && data?.user) {
     return null;
   }

@@ -122,11 +122,10 @@ async function agentLoop(conversation) {
     });
     console.log(userBox);
 
-    // Save user message
     await saveMessage(conversation.id, "user", userInput);
 
     try {
-      // Generate application using structured output
+      
       const result = await generateApplication(
         userInput,
         aiService,
@@ -134,7 +133,7 @@ async function agentLoop(conversation) {
       );
 
       if (result && result.success) {
-        // Save successful generation details
+        
         const responseMessage = `Generated application: ${result.folderName}\n` +
           `Files created: ${result.files.length}\n` +
           `Location: ${result.appDir}\n\n` +
@@ -142,7 +141,7 @@ async function agentLoop(conversation) {
         
         await saveMessage(conversation.id, "assistant", responseMessage);
 
-        // Ask if user wants to generate another app
+        
         const continuePrompt = await confirm({
           message: chalk.cyan("Would you like to generate another application?"),
           initialValue: false,
@@ -190,7 +189,7 @@ export async function startAgentChat(conversationId = null) {
 
     const user = await getUserFromToken();
     
-    // Warning about file system access
+    
     const shouldContinue = await confirm({
       message: chalk.yellow("⚠️  The agent will create files and folders in the current directory. Continue?"),
       initialValue: true,

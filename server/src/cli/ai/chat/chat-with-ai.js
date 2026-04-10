@@ -9,14 +9,14 @@ import { ChatService } from "../../../service/chat.service.js";
 import { getStoredToken } from "../../commands/auth/login.js";
 import prisma from "../../../lib/db.js";
 
-// ✅ FIXED marked config
-// ✅ FIX WARNINGS (IMPORTANT)
+
+
 marked.setOptions({
   mangle: false,
   headerIds: false,
 });
 
-// ✅ TERMINAL STYLING
+
 marked.use(
   markedTerminal({
     code: chalk.cyan,
@@ -67,7 +67,7 @@ async function getUserFromToken() {
   return user;
 }
 
-// 💬 Init conversation
+
 async function initConversation(userId, conversationId = null, mode = "chat") {
   const spinner = yoctoSpinner({ text: "Loading conversation..." }).start();
 
@@ -103,7 +103,7 @@ async function initConversation(userId, conversationId = null, mode = "chat") {
   return conversation;
 }
 
-// 📜 Display messages
+
 function displayMessages(messages) {
   messages.forEach((msg) => {
     if (msg.role === "user") {
@@ -131,12 +131,12 @@ function displayMessages(messages) {
   });
 }
 
-// 💾 Save message
+
 async function saveMessage(conversationId, role, content) {
   return await chatService.addMessage(conversationId, role, content);
 }
 
-// 🤖 AI RESPONSE (FINAL SAFE VERSION)
+
 async function getAIResponse(conversationId) {
   const spinner = yoctoSpinner({
     text: "AI is thinking...",
@@ -160,13 +160,13 @@ async function getAIResponse(conversationId) {
         isFirstChunk = false;
       }
 
-      // ✅ SAFE CHUNK HANDLE
+     
       if (typeof chunk === "string") {
         fullResponse += chunk;
       }
     });
 
-    // ✅ If no streaming happened
+    
     if (isFirstChunk) {
       spinner.stop();
       console.log("\n");
@@ -174,7 +174,7 @@ async function getAIResponse(conversationId) {
       console.log(chalk.gray("─".repeat(60)));
     }
 
-    // ✅ SAFE FALLBACK
+    
     if (
       !fullResponse ||
       typeof fullResponse !== "string" ||
@@ -207,7 +207,7 @@ async function getAIResponse(conversationId) {
   }
 }
 
-// 🔁 Chat loop
+
 async function chatLoop(conversation) {
   console.log(
     boxen(

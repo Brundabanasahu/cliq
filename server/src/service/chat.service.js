@@ -66,7 +66,7 @@ export class ChatService {
       },
     });
 
-    // 🔥 Update conversation timestamp (important for sorting)
+
     await prisma.conversation.update({
       where: { id: conversationId },
       data: { updatedAt: new Date() },

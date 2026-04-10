@@ -1,10 +1,10 @@
-import fs from "fs/promises";   // FIXED (missing import)
-import chalk from "chalk";           // FIXED (missing import)
-import { TOKEN_FILE, CONFIG_DIR } from "../cli/commands/auth/login.js"; // FIXED (CONFIG_DIR missing)
+import fs from "fs/promises";   
+import chalk from "chalk";           
+import { TOKEN_FILE, CONFIG_DIR } from "../cli/commands/auth/login.js"; 
 
 export async function getStoredToken() {
     try {
-        const data = await fs.readFile(TOKEN_FILE, "utf-8"); // FIXED (readfile → readFile)
+        const data = await fs.readFile(TOKEN_FILE, "utf-8"); 
         const token = JSON.parse(data);
         return token;
     } catch (error) {
@@ -22,7 +22,7 @@ export async function storeToken(token) {
             token_type: token.token_type || "Bearer",
             scope: token.scope,
             expires_at: token.expires_in
-                ? new Date(Date.now() + token.expires_in * 1000).toISOString() // FIXED (Data → Date)
+                ? new Date(Date.now() + token.expires_in * 1000).toISOString() 
                 : null,
             created_at: new Date().toISOString(),
         };
@@ -52,7 +52,7 @@ export async function clearStoredToken() {
 export async function isTokenExpired() {
     const token = await getStoredToken();
 
-    if (!token || !token.expires_at) {  // FIXED (condition wrong)
+    if (!token || !token.expires_at) {  
         return true;
     }
 
@@ -76,7 +76,7 @@ export async function requireAuth() {
         console.log(
             chalk.yellow("Your session has expired. please login again")
         );
-        console.log(chalk.gray("  Run: your-cli login\n")); // FIXED (missing quote)
+        console.log(chalk.gray("  Run: your-cli login\n")); 
         process.exit(1);
     }
 
